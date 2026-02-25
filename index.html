@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>License Manager Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #0a0f1a;
+      --bg-secondary: #111827;
+      --fg: #f1f5f9;
+      --muted: #64748b;
+      --accent: #06d6a0;
+      --accent-dim: #059669;
+      --danger: #ef4444;
+      --danger-dim: #dc2626;
+      --card: rgba(17, 24, 39, 0.8);
+      --border: rgba(100, 116, 139, 0.2);
+      --glow: rgba(6, 214, 160, 0.15);
+      --purple: #8b5cf6;
+      --orange: #f59e0b;
+      --cyan: #22d3ee;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated Background */
+    .bg-pattern {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .bg-pattern::before {
+      content: '';
+      position: absolute;
+      width: 150%;
+      height: 150%;
+      top: -25%;
+      left: -25%;
+      background: 
+        radial-gradient(ellipse 600px 400px at 20% 30%, rgba(6, 214, 160, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 500px 500px at 80% 70%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 400px 300px at 50% 90%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+      animation: bgFloat 20s ease-in-out infinite;
+    }
+
+    @keyframes bgFloat {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(30px, -30px) rotate(1deg); }
+      66% { transform: translate(-20px, 20px) rotate(-1deg); }
+    }
+
+    /* Grid Pattern Overlay */
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background-image: 
+        linear-gradient(rgba(100, 116, 139, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(100, 116, 139, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    .main-container {
+      position: relative;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 1rem;
+      animation: slideDown 0.8s ease-out;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header h1 {
+      font-size: clamp(1.25rem, 4vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.25rem;
+    }
+
+    .header p {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    /* Top Navigation */
+    .top-nav {
+      display: flex;
+      justify-content: center;
+      gap: 0.25rem;
+      margin-bottom: 1rem;
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.25rem;
+    }
+
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.5rem 0.75rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      color: var(--fg);
+      background: rgba(100, 116, 139, 0.1);
+    }
+
+    .nav-btn.active {
+      color: var(--bg);
+      background: var(--accent);
+      box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+    }
+
+    .nav-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Auth Card */
+    .auth-card {
+      max-width: 360px;
+      margin: 0 auto;
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      animation: fadeInUp 0.6s ease-out 0.2s both;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-card h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .auth-card h2 svg {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+    }
+
+    /* Form Inputs */
+    .input-group {
+      position: relative;
+      margin-bottom: 0.75rem;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+      transition: color 0.2s;
+    }
+
+    .input-group input,
+    .input-group select {
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      color: var(--fg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .input-group input::placeholder {
+      color: var(--muted);
+      opacity: 0.6;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--glow);
+    }
+
+    .input-group input:focus + .input-highlight {
+      transform: scaleX(1);
+    }
+
+    .input-highlight {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transition: transform 0.3s ease;
+      border-radius: 0 0 0.375rem 0.375rem;
+    }
+
+    /* Time Preset Buttons */
+    .time-presets {
+      display: flex;
+      gap: 0.375rem;
+      margin-top: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      flex: 1;
+      min-width: 70px;
+      padding: 0.5rem 0.625rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preset-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .preset-btn:hover::before {
+      opacity: 1;
+    }
+
+    .preset-btn.daily {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.3);
+      color: #a78bfa;
+    }
+
+    .preset-btn.daily:hover {
+      background: rgba(139, 92, 246, 0.25);
+      border-color: var(--purple);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+    }
+
+    .preset-btn.daily.active {
+      background: linear-gradient(135deg, var(--purple) 0%, #7c3aed 100%);
+      color: white;
+      border-color: var(--purple);
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+    }
+
+    .preset-btn.three-days {
+      background: rgba(6, 214, 160, 0.15);
+      border-color: rgba(6, 214, 160, 0.3);
+      color: var(--accent);
+    }
+
+    .preset-btn.three-days:hover {
+      background: rgba(6, 214, 160, 0.25);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(6, 214, 160, 0.3);
+    }
+
+    .preset-btn.three-days.active {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: var(--bg);
+      border-color: var(--accent);
+      box-shadow: 0 4px 20px rgba(6, 214, 160, 0.4);
+    }
+
+    .preset-btn.seven-days {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--orange);
+    }
+
+    .preset-btn.seven-days:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: var(--orange);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    .preset-btn.seven-days.active {
+      background: linear-gradient(135deg, var(--orange) 0%, #d97706 100%);
+      color: var(--bg);
+      border-color: var(--orange);
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    .preset-btn.custom {
+      background: rgba(100, 116, 139, 0.15);
+      border-color: rgba(100, 116, 139, 0.3);
+      color: var(--muted);
+    }
+
+    .preset-btn.custom:hover {
+      background: rgba(100, 116, 139, 0.25);
+      border-color: var(--muted);
+      transform: translateY(-2px);
+    }
+
+    .preset-btn.custom.active {
+      background: rgba(100, 116, 139, 0.35);
+      color: var(--fg);
+      border-color: var(--muted);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.625rem 1rem;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover::before {
+      opacity: 1;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: var(--bg);
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(6, 214, 160, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(100, 116, 139, 0.2);
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(100, 116, 139, 0.3);
+      border-color: var(--muted);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dim) 100%);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.6875rem;
+    }
+
+    /* Panel */
+    #panel {
+      display: none;
+    }
+
+    .panel-active {
+      display: block !important;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Dashboard Content */
+    #dashboardContent {
+      display: block;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 8px 30px rgba(6, 214, 160, 0.1);
+    }
+
+    .stat-card .label {
+      font-size: 0.625rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-card .value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-card.accent .value {
+      color: var(--accent);
+    }
+
+    .stat-card.danger .value {
+      color: var(--danger);
+    }
+
+    .stat-card.cyan .value {
+      color: var(--cyan);
+    }
+
+    /* Add User Form */
+    .form-card {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-card h3 svg {
+      width: 16px;
+      height: 16px;
+      color: var(--accent);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* Users Modal Overlay */
+    .users-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .users-modal-overlay.active {
+      display: flex;
+    }
+
+    /* Users Modal Box */
+    .users-modal {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      max-height: 90vh;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUp 0.4s ease-out;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(50px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .users-modal-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .users-modal-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .users-modal-header h3 svg {
+      width: 16px;
+      height: 16px;
+      color: var(--accent);
+    }
+
+    .close-modal-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 0.375rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .close-modal-btn:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* Search & Filter Bar */
+    .search-filter-bar {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 140px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 0.5rem 0.75rem 0.5rem 2rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      color: var(--fg);
+      font-size: 0.75rem;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 0.625rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      color: var(--muted);
+    }
+
+    .filter-select {
+      padding: 0.5rem 0.75rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      color: var(--fg);
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Users Grid inside Modal */
+    .users-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+    }
+
+    .users-grid {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .user-card {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      transition: all 0.3s ease;
+      animation: cardSlideIn 0.5s ease-out both;
+    }
+
+    @keyframes cardSlideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .user-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .user-card.expired {
+      border-color: var(--danger);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      50% { box-shadow: 0 0 20px 5px rgba(239, 68, 68, 0.2); }
+    }
+
+    .user-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .user-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6875rem;
+      color: var(--accent);
+      background: rgba(6, 214, 160, 0.1);
+      padding: 0.1875rem 0.5rem;
+      border-radius: 0.1875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .user-id:hover {
+      background: rgba(6, 214, 160, 0.2);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.1875rem 0.5rem;
+      border-radius: 2rem;
+      font-size: 0.5625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-badge.active {
+      background: rgba(6, 214, 160, 0.15);
+      color: var(--accent);
+    }
+
+    .status-badge.blocked {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Plan Badge */
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 0.375rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .plan-badge.daily {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .plan-badge.three-days {
+      background: linear-gradient(135deg, rgba(6, 214, 160, 0.2) 0%, rgba(6, 214, 160, 0.1) 100%);
+      color: var(--accent);
+      border: 1px solid rgba(6, 214, 160, 0.3);
+    }
+
+    .plan-badge.seven-days {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+      color: var(--orange);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .plan-badge.custom {
+      background: rgba(100, 116, 139, 0.15);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .user-info {
+      display: grid;
+      gap: 0.375rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .info-row .label {
+      color: var(--muted);
+      min-width: 50px;
+      font-size: 0.625rem;
+    }
+
+    .info-row .value {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--fg);
+      word-break: break-all;
+      font-size: 0.6875rem;
+    }
+
+    .copy-btn {
+      padding: 0.1875rem 0.375rem;
+      background: rgba(100, 116, 139, 0.1);
+      border: none;
+      border-radius: 0.1875rem;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    /* Countdown Timer */
+    .countdown-section {
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .countdown-label {
+      font-size: 0.5625rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.375rem;
+    }
+
+    .countdown-display {
+      display: flex;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .countdown-unit {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 0.375rem;
+      padding: 0.5rem 0.625rem;
+      text-align: center;
+      min-width: 48px;
+    }
+
+    .countdown-unit .number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--fg);
+      line-height: 1;
+    }
+
+    .countdown-unit .text {
+      font-size: 0.5rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 0.125rem;
+    }
+
+    .countdown-unit.danger .number {
+      color: var(--danger);
+      animation: countdownPulse 1s ease-in-out infinite;
+    }
+
+    @keyframes countdownPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .expired-badge {
+      background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dim) 100%);
+      color: white;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.6875rem;
+    }
+
+    .user-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 0.75rem;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 0.875rem;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      top: 0.75rem;
+      right: 0.75rem;
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      padding: 0.625rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: toastIn 0.3s ease-out;
+      max-width: 280px;
+      font-size: 0.75rem;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .toast.removing {
+      animation: toastOut 0.3s ease-in forwards;
+    }
+
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateX(100%); }
+    }
+
+    .toast.success {
+      border-color: var(--accent);
+    }
+
+    .toast.success svg {
+      color: var(--accent);
+    }
+
+    .toast.error {
+      border-color: var(--danger);
+    }
+
+    .toast.error svg {
+      color: var(--danger);
+    }
+
+    .toast svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Tablet and above */
+    @media (min-width: 640px) {
+      .main-container {
+        padding: 1.5rem;
+      }
+
+      .header {
+        margin-bottom: 1.5rem;
+      }
+
+      .header h1 {
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+      }
+
+      .header p {
+        font-size: 0.875rem;
+      }
+
+      .top-nav {
+        margin-bottom: 1.5rem;
+        padding: 0.375rem;
+        border-radius: 0.625rem;
+      }
+
+      .nav-btn {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        gap: 0.5rem;
+      }
+
+      .nav-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .stats-grid {
+        gap: 0.75rem;
+      }
+
+      .stat-card {
+        padding: 1rem;
+      }
+
+      .stat-card .label {
+        font-size: 0.6875rem;
+      }
+
+      .stat-card .value {
+        font-size: 1.5rem;
+      }
+
+      .form-card {
+        padding: 1.25rem;
+      }
+
+      .form-card h3 {
+        font-size: 1.125rem;
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+
+      .users-modal {
+        max-width: 700px;
+        max-height: 85vh;
+      }
+
+      .users-modal-header {
+        padding: 1rem 1.25rem;
+      }
+
+      .users-modal-header h3 {
+        font-size: 1.125rem;
+      }
+
+      .search-filter-bar {
+        padding: 0.75rem 1rem;
+      }
+
+      .users-modal-body {
+        padding: 1rem;
+      }
+
+      .user-card {
+        padding: 1rem;
+      }
+
+      .countdown-unit {
+        min-width: 55px;
+        padding: 0.625rem 0.75rem;
+      }
+
+      .countdown-unit .number {
+        font-size: 1.25rem;
+      }
+
+      .auth-card {
+        padding: 1.5rem;
+      }
+
+      .auth-card h2 {
+        font-size: 1.25rem;
+      }
+
+      .input-group input,
+      .input-group select {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+      }
+
+      .btn {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.875rem;
+      }
+
+      .time-presets {
+        gap: 0.5rem;
+      }
+
+      .preset-btn {
+        padding: 0.625rem 0.875rem;
+        font-size: 0.75rem;
+      }
+    }
+
+    /* Desktop */
+    @media (min-width: 1024px) {
+      .main-container {
+        padding: 2rem;
+      }
+
+      .stats-grid {
+        gap: 1rem;
+      }
+
+      .stat-card {
+        padding: 1.25rem;
+      }
+
+      .stat-card .value {
+        font-size: 1.75rem;
+      }
+
+      .form-card {
+        padding: 1.5rem;
+      }
+
+      .users-grid {
+        gap: 0.75rem;
+      }
+
+      .user-card {
+        padding: 1.25rem;
+      }
+
+      .countdown-unit {
+        min-width: 60px;
+      }
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="grid-overlay"></div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="main-container">
+  
+  <!-- Header -->
+  <header class="header">
+    <h1>License Manager</h1>
+    <p>Device authentication control panel</p>
+  </header>
+
+  <!-- Login Form -->
+  <div id="authSection">
+    <div class="auth-card">
+      <h2>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Admin Login
+      </h2>
+      
+      <div class="input-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="admin@example.com">
+        <div class="input-highlight"></div>
+      </div>
+      
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter your password">
+        <div class="input-highlight"></div>
+      </div>
+      
+      <button class="btn btn-primary" onclick="login()" id="loginBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Sign In
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="panel">
+    
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+      <button class="nav-btn active" id="dashboardBtn" onclick="showDashboard()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Dashboard
+      </button>
+      <button class="nav-btn" id="allUsersBtn" onclick="showAllUsers()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        All Users
+      </button>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <div id="dashboardContent">
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card accent">
+          <div class="label">Total Users</div>
+          <div class="value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card cyan">
+          <div class="label">Added Today</div>
+          <div class="value" id="statToday">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Active</div>
+          <div class="value" id="statActive">0</div>
+        </div>
+        <div class="stat-card danger">
+          <div class="label">Expired</div>
+          <div class="value" id="statExpired">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Blocked</div>
+          <div class="value" id="statBlocked">0</div>
+        </div>
+      </div>
+
+      <!-- Add User Form -->
+      <div class="form-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <line x1="20" y1="8" x2="20" y2="14"/>
+            <line x1="23" y1="11" x2="17" y2="11"/>
+          </svg>
+          <span id="formTitle">Add New User</span>
+        </h3>
+        
+        <div class="form-grid">
+          <div class="input-group">
+            <label for="name">User Name</label>
+            <input type="text" id="name" placeholder="John Doe">
+          </div>
+          
+          <div class="input-group">
+            <label for="deviceId">Device ID</label>
+            <input type="text" id="deviceId" placeholder="DEVICE-XXXX-XXXX">
+          </div>
+          
+          <div class="input-group">
+            <label for="key">License Key</label>
+            <input type="text" id="key" placeholder="KEY-XXXX-XXXX-XXXX">
+          </div>
+          
+          <div class="input-group">
+            <label for="expiry">Expiry Date & Time</label>
+            <input type="datetime-local" id="expiry">
+            <!-- Time Preset Buttons -->
+            <div class="time-presets">
+              <button type="button" class="preset-btn daily" onclick="setTimePreset('daily')">
+                Daily
+              </button>
+              <button type="button" class="preset-btn three-days" onclick="setTimePreset('three-days')">
+                3 Days
+              </button>
+              <button type="button" class="preset-btn seven-days" onclick="setTimePreset('seven-days')">
+                7 Days
+              </button>
+              <button type="button" class="preset-btn custom" onclick="setTimePreset('custom')">
+                Custom
+              </button>
+            </div>
+          </div>
+          
+          <div class="input-group">
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="active">Active</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="saveUser()" id="saveBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Save User
+          </button>
+          <button class="btn btn-secondary" onclick="resetForm()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Logout Button -->
+      <div style="margin-top: 1rem; text-align: center;">
+        <button class="btn btn-secondary" onclick="logout()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- All Users Modal -->
+<div class="users-modal-overlay" id="usersModalOverlay" onclick="closeUsersModal(event)">
+  <div class="users-modal" onclick="event.stopPropagation()">
+    <div class="users-modal-header">
+      <h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        All Users
+      </h3>
+      <button class="close-modal-btn" onclick="closeUsersModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Search & Filter -->
+    <div class="search-filter-bar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Search by name, device ID, key..." oninput="filterUsers()">
+      </div>
+      <select class="filter-select" id="filterStatus" onchange="filterUsers()">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="blocked">Blocked</option>
+        <option value="expired">Expired</option>
+      </select>
+    </div>
+    
+    <div class="users-modal-body">
+      <div class="users-grid" id="userList">
+        <!-- Users will be rendered here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyAr7j2YGjJUa_vVfV6iGFIXYAQ4i23b3og",
+    authDomain: "income-jatra.firebaseapp.com",
+    databaseURL: "https://income-jatra-default-rtdb.firebaseio.com",
+    projectId: "income-jatra",
+    storageBucket: "income-jatra.firebasestorage.app",
+    messagingSenderId: "376007615271",
+    appId: "1:376007615271:web:autoGeneratedId"
+  };
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const db = firebase.database();
+
+// State
+let usersData = {};
+let countdownIntervals = {};
+let currentTimePreset = null;
+
+// Toast Notification System
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  const icon = type === 'success' 
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  
+  toast.innerHTML = `${icon}<span>${message}</span>`;
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.add('removing');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+// Set Time Preset
+function setTimePreset(preset) {
+  const expiryInput = document.getElementById('expiry');
+  const now = new Date();
+  let targetDate;
+  
+  // Remove active class from all preset buttons
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Add active class to clicked button
+  const activeBtn = document.querySelector(`.preset-btn.${preset}`);
+  if (activeBtn) {
+    activeBtn.classList.add('active');
+  }
+  
+  switch(preset) {
+    case 'daily':
+      targetDate = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
+      currentTimePreset = 'daily';
+      showToast('Daily plan: 1 day expiry set', 'success');
+      break;
+    case 'three-days':
+      targetDate = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      currentTimePreset = 'three-days';
+      showToast('3 Days plan: 3 days expiry set', 'success');
+      break;
+    case 'seven-days':
+      targetDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      currentTimePreset = 'seven-days';
+      showToast('7 Days plan: 7 days expiry set', 'success');
+      break;
+    case 'custom':
+      currentTimePreset = 'custom';
+      expiryInput.value = '';
+      expiryInput.focus();
+      showToast('Custom: Select your own date', 'success');
+      return;
+  }
+  
+  // Format to datetime-local format
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  const hours = String(targetDate.getHours()).padStart(2, '0');
+  const minutes = String(targetDate.getMinutes()).padStart(2, '0');
+  
+  expiryInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+// Auth State Observer
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('authSection').style.display = 'none';
+    document.getElementById('panel').classList.add('panel-active');
+    loadUsers();
+    startExpiryChecker();
+  } else {
+    document.getElementById('authSection').style.display = 'block';
+    document.getElementById('panel').classList.remove('panel-active');
+    clearAllIntervals();
+  }
+});
+
+// Login
+function login() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('loginBtn');
+  
+  if (!email || !password) {
+    showToast('Please fill all fields', 'error');
+    return;
+  }
+  
+  btn.innerHTML = '<span class="spinner"></span> Signing in...';
+  btn.disabled = true;
+  
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      showToast('Login successful!');
+    })
+    .catch(error => {
+      showToast(error.message, 'error');
+    })
+    .finally(() => {
+      btn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Sign In
+      `;
+      btn.disabled = false;
+    });
+}
+
+// Logout
+function logout() {
+  auth.signOut();
+  showToast('Logged out successfully');
+}
+
+// Show Dashboard
+function showDashboard() {
+  document.getElementById('dashboardBtn').classList.add('active');
+  document.getElementById('allUsersBtn').classList.remove('active');
+  document.getElementById('dashboardContent').style.display = 'block';
+  document.getElementById('usersModalOverlay').classList.remove('active');
+}
+
+// Show All Users Modal
+function showAllUsers() {
+  document.getElementById('dashboardBtn').classList.remove('active');
+  document.getElementById('allUsersBtn').classList.add('active');
+  document.getElementById('usersModalOverlay').classList.add('active');
+  renderUsers();
+}
+
+// Close Users Modal
+function closeUsersModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('usersModalOverlay').classList.remove('active');
+  document.getElementById('dashboardBtn').classList.add('active');
+  document.getElementById('allUsersBtn').classList.remove('active');
+}
+
+// Save User
+function saveUser() {
+  const device = document.getElementById('deviceId').value.trim();
+  const name = document.getElementById('name').value.trim();
+  const key = document.getElementById('key').value.trim();
+  const expiry = document.getElementById('expiry').value;
+  const status = document.getElementById('status').value;
+  const btn = document.getElementById('saveBtn');
+  
+  if (!device || !key) {
+    showToast('Device ID and Key are required', 'error');
+    return;
+  }
+  
+  btn.innerHTML = '<span class="spinner"></span> Saving...';
+  btn.disabled = true;
+  
+  db.ref("licenses/" + device).set({
+    name: name,
+    key: key,
+    expiry: expiry,
+    status: status,
+    plan: currentTimePreset || 'custom',
+    createdAt: new Date().toISOString()
+  })
+  .then(() => {
+    showToast('User saved successfully!');
+    resetForm();
+  })
+  .catch(error => {
+    showToast(error.message, 'error');
+  })
+  .finally(() => {
+    btn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/>
+        <polyline points="7 3 7 8 15 8"/>
+      </svg>
+      Save User
+    `;
+    btn.disabled = false;
+  });
+}
+
+// Reset Form
+function resetForm() {
+  document.getElementById('deviceId').value = '';
+  document.getElementById('name').value = '';
+  document.getElementById('key').value = '';
+  document.getElementById('expiry').value = '';
+  document.getElementById('status').value = 'active';
+  document.getElementById('formTitle').textContent = 'Add New User';
+  currentTimePreset = null;
+  
+  // Remove active class from all preset buttons
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+}
+
+// Load Users
+function loadUsers() {
+  db.ref("licenses").on("value", snapshot => {
+    usersData = snapshot.val() || {};
+    updateStats();
+    // Only render if modal is open
+    if (document.getElementById('usersModalOverlay').classList.contains('active')) {
+      renderUsers();
+    }
+  });
+}
+
+// Filter Users
+function filterUsers() {
+  renderUsers();
+}
+
+// Copy to Clipboard
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Copied to clipboard!');
+  }).catch(() => {
+    showToast('Failed to copy', 'error');
+  });
+}
+
+// Get Plan Display Name
+function getPlanDisplayName(plan) {
+  switch(plan) {
+    case 'daily': return 'Daily';
+    case 'three-days': return '3 Days';
+    case 'seven-days': return '7 Days';
+    default: return 'Custom';
+  }
+}
+
+// Render Users
+function renderUsers() {
+  const list = document.getElementById('userList');
+  clearAllIntervals();
+  
+  // Get filter values
+  const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+  const filterStatus = document.getElementById('filterStatus').value;
+  
+  // Filter users
+  let filteredUsers = {};
+  const now = new Date();
+  
+  for (let id in usersData) {
+    const user = usersData[id];
+    const isExpired = user.expiry && now > new Date(user.expiry);
+    
+    // Search filter
+    const matchesSearch = 
+      id.toLowerCase().includes(searchQuery) ||
+      (user.name && user.name.toLowerCase().includes(searchQuery)) ||
+      (user.key && user.key.toLowerCase().includes(searchQuery));
+    
+    // Status filter
+    let matchesStatus = true;
+    if (filterStatus === 'active') {
+      matchesStatus = user.status === 'active' && !isExpired;
+    } else if (filterStatus === 'blocked') {
+      matchesStatus = user.status === 'blocked';
+    } else if (filterStatus === 'expired') {
+      matchesStatus = isExpired;
+    }
+    
+    if (matchesSearch && matchesStatus) {
+      filteredUsers[id] = user;
+    }
+  }
+  
+  if (Object.keys(filteredUsers).length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <line x1="17" y1="11" x2="23" y2="11"/>
+        </svg>
+        <p>No users found</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem;">Try adjusting your search or filter</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let html = '';
+  let index = 0;
+  
+  for (let id in filteredUsers) {
+    const user = filteredUsers[id];
+    const expiryDate = user.expiry ? new Date(user.expiry) : null;
+    const isExpired = expiryDate && now > expiryDate;
+    const plan = user.plan || 'custom';
+    
+    html += `
+      <div class="user-card ${isExpired ? 'expired' : ''}" style="animation-delay: ${index * 0.05}s" data-id="${id}">
+        <div class="user-header">
+          <span class="user-id" onclick="copyToClipboard('${id}')" title="Click to copy">
+            ${id}
+          </span>
+          <div style="display: flex; gap: 0.375rem; align-items: center; flex-wrap: wrap;">
+            <span class="plan-badge ${plan}">${getPlanDisplayName(plan)}</span>
+            <span class="status-badge ${user.status === 'active' ? 'active' : 'blocked'}">
+              ${user.status}
+            </span>
+          </div>
+        </div>
+        
+        <div class="user-info">
+          <div class="info-row">
+            <span class="label">Name</span>
+            <span class="value">${user.name || 'N/A'}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">Key</span>
+            <span class="value">${user.key}</span>
+            <button class="copy-btn" onclick="copyToClipboard('${user.key}')" title="Copy key">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
+          </div>
+          <div class="info-row">
+            <span class="label">Expiry</span>
+            <span class="value">${user.expiry ? formatDateTime(user.expiry) : 'No limit'}</span>
+          </div>
+        </div>
+        
+        <div class="countdown-section" id="countdown-${id.replace(/[^a-zA-Z0-9]/g, '_')}">
+          ${renderCountdown(id, user)}
+        </div>
+        
+        <div class="user-actions">
+          <button class="btn btn-secondary btn-sm" data-user-id="${id}" onclick="editUser(this.dataset.userId)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit
+          </button>
+          <button class="btn btn-danger btn-sm" data-user-id="${id}" onclick="deleteUser(this.dataset.userId)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Delete
+          </button>
+        </div>
+      </div>
+    `;
+    index++;
+  }
+  
+  list.innerHTML = html;
+  
+  // Start countdown timers
+  for (let id in filteredUsers) {
+    const user = filteredUsers[id];
+    if (user.expiry) {
+      startCountdown(id, user);
+    }
+  }
+}
+
+// Render Countdown
+function renderCountdown(id, user) {
+  if (!user.expiry) {
+    return `<div class="countdown-label">No expiry set</div>`;
+  }
+  
+  const expiryDate = new Date(user.expiry);
+  const now = new Date();
+  const diff = expiryDate - now;
+  
+  if (diff <= 0) {
+    return `
+      <div class="expired-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        License Expired - Auto deleting...
+      </div>
+    `;
+  }
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  const isUrgent = days === 0 && hours < 24;
+  
+  return `
+    <div class="countdown-label">Time Remaining</div>
+    <div class="countdown-display">
+      <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+        <div class="number">${String(days).padStart(2, '0')}</div>
+        <div class="text">Days</div>
+      </div>
+      <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+        <div class="number">${String(hours).padStart(2, '0')}</div>
+        <div class="text">Hours</div>
+      </div>
+      <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+        <div class="number">${String(minutes).padStart(2, '0')}</div>
+        <div class="text">Min</div>
+      </div>
+      <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+        <div class="number">${String(seconds).padStart(2, '0')}</div>
+        <div class="text">Sec</div>
+      </div>
+    </div>
+  `;
+}
+
+// Start Countdown Timer
+function startCountdown(id, user) {
+  if (!user.expiry) return;
+  
+  const safeId = id.replace(/[^a-zA-Z0-9]/g, '_');
+  
+  const interval = setInterval(() => {
+    const expiryDate = new Date(user.expiry);
+    const now = new Date();
+    const diff = expiryDate - now;
+    
+    const container = document.getElementById(`countdown-${safeId}`);
+    if (!container) {
+      clearInterval(interval);
+      return;
+    }
+    
+    if (diff <= 0) {
+      container.innerHTML = `
+        <div class="expired-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          License Expired - Auto deleting...
+        </div>
+      `;
+      clearInterval(interval);
+      return;
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    const isUrgent = days === 0 && hours < 24;
+    
+    container.innerHTML = `
+      <div class="countdown-label">Time Remaining</div>
+      <div class="countdown-display">
+        <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+          <div class="number">${String(days).padStart(2, '0')}</div>
+          <div class="text">Days</div>
+        </div>
+        <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+          <div class="number">${String(hours).padStart(2, '0')}</div>
+          <div class="text">Hours</div>
+        </div>
+        <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+          <div class="number">${String(minutes).padStart(2, '0')}</div>
+          <div class="text">Min</div>
+        </div>
+        <div class="countdown-unit ${isUrgent ? 'danger' : ''}">
+          <div class="number">${String(seconds).padStart(2, '0')}</div>
+          <div class="text">Sec</div>
+        </div>
+      </div>
+    `;
+  }, 1000);
+  
+  countdownIntervals[safeId] = interval;
+}
+
+// Clear All Intervals
+function clearAllIntervals() {
+  for (let key in countdownIntervals) {
+    clearInterval(countdownIntervals[key]);
+  }
+  countdownIntervals = {};
+}
+
+// Start Expiry Checker
+function startExpiryChecker() {
+  // Check every 5 seconds for expired licenses
+  setInterval(() => {
+    checkExpiryAndDelete();
+  }, 5000);
+}
+
+// Check Expiry and Delete
+function checkExpiryAndDelete() {
+  const now = new Date();
+  
+  for (let id in usersData) {
+    const user = usersData[id];
+    if (user.expiry) {
+      const expiryDate = new Date(user.expiry);
+      if (now > expiryDate) {
+        db.ref("licenses/" + id).remove()
+          .then(() => {
+            showToast(`Auto-deleted expired user: ${id}`);
+          });
+      }
+    }
+  }
+}
+
+// Update Stats
+function updateStats() {
+  const total = Object.keys(usersData).length;
+  let active = 0;
+  let expired = 0;
+  let blocked = 0;
+  let addedToday = 0;
+  
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  for (let id in usersData) {
+    const user = usersData[id];
+    
+    if (user.status === 'blocked') {
+      blocked++;
+    } else {
+      if (user.expiry && now > new Date(user.expiry)) {
+        expired++;
+      } else {
+        active++;
+      }
+    }
+    
+    // Check if created today
+    if (user.createdAt) {
+      const createdDate = new Date(user.createdAt);
+      if (createdDate >= startOfToday) {
+        addedToday++;
+      }
+    }
+  }
+  
+  animateCounter('statTotal', total);
+  animateCounter('statActive', active);
+  animateCounter('statExpired', expired);
+  animateCounter('statBlocked', blocked);
+  animateCounter('statToday', addedToday);
+}
+
+// Animate Counter
+function animateCounter(elementId, target) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  
+  const current = parseInt(el.textContent) || 0;
+  const diff = target - current;
+  const steps = Math.abs(diff);
+  const stepTime = 200 / Math.max(steps, 1);
+  
+  let count = current;
+  const interval = setInterval(() => {
+    if (diff > 0) {
+      count++;
+    } else if (diff < 0) {
+      count--;
+    }
+    el.textContent = count;
+    
+    if (count === target) {
+      clearInterval(interval);
+    }
+  }, stepTime);
+}
+
+// Edit User
+function editUser(id) {
+  const user = usersData[id];
+  if (!user) return;
+  
+  // Close modal and show dashboard
+  closeUsersModal();
+  
+  document.getElementById('deviceId').value = id;
+  document.getElementById('name').value = user.name || '';
+  document.getElementById('key').value = user.key || '';
+  document.getElementById('expiry').value = user.expiry || '';
+  document.getElementById('status').value = user.status || 'active';
+  document.getElementById('formTitle').textContent = 'Edit User: ' + id;
+  
+  // Set the current plan and highlight the button
+  currentTimePreset = user.plan || 'custom';
+  
+  // Remove active class from all preset buttons
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Add active class to the current plan button
+  if (currentTimePreset !== 'custom') {
+    const activeBtn = document.querySelector(`.preset-btn.${currentTimePreset}`);
+    if (activeBtn) {
+      activeBtn.classList.add('active');
+    }
+  }
+  
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast(`Editing user: ${id}`);
+}
+
+// Delete User
+function deleteUser(id) {
+  if (!confirm(`Are you sure you want to delete user: ${id}?`)) return;
+  
+  db.ref("licenses/" + id).remove()
+    .then(() => {
+      showToast(`User deleted: ${id}`);
+    })
+    .catch(error => {
+      showToast(error.message, 'error');
+    });
+}
+
+// Format DateTime
+function formatDateTime(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Enter key support for login
+document.getElementById('password').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') login();
+});
+
+document.getElementById('email').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('password').focus();
+});
+
+// Keyboard shortcut to close modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeUsersModal();
+  }
+});
+</script>
+
+</body>
+</html>
