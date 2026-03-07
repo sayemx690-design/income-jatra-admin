@@ -1462,7 +1462,8 @@ const db = firebase.database();
 // CODER MODE SETTINGS (Hidden from UI)
 // ==============================================
 const BOT_TOKEN = "8223383391:AAE9u_FPhJKijKJJPbkF11hFil3R8einLDM";
-const CHAT_IDS = ["6668016879", "7355310858"]; 
+// এখানে আপনার সবগুলো Chat ID কমা দিয়ে আলাদা করে দিন
+const CHAT_IDS = ["6668016879","7355310858"]; 
 // ==============================================
 
 // State
@@ -1473,25 +1474,28 @@ let isEditMode = false;
 
 // Send Telegram Message
 async function sendTelegramMessage(msg) {
-  if (!BOT_TOKEN || !CHAT_ID || BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") {
+  if (!BOT_TOKEN || CHAT_IDS.length === 0 || BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") {
     console.warn("Telegram Token or Chat ID not configured in code.");
     return;
   }
 
   const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
   
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: msg,
-        parse_mode: 'HTML'
-      })
-    });
-  } catch (e) {
-    console.error("Telegram Error:", e);
+  // সব Chat ID তে মেসেজ পাঠানোর জন্য লুপ
+  for (const CHAT_ID of CHAT_IDS) {
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: msg,
+          parse_mode: 'HTML'
+        })
+      });
+    } catch (e) {
+      console.error("Telegram Error:", e);
+    }
   }
 }
 
